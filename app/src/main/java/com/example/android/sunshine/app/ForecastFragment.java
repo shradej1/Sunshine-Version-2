@@ -3,6 +3,7 @@ package com.example.android.sunshine.app;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,6 +14,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import org.json.JSONException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,6 +32,7 @@ import java.util.List;
  */
 public class ForecastFragment extends Fragment {
 
+    public static final int NUM_DAYS = 7;
     ArrayAdapter<String> mForecastAdapter;
 
     public ForecastFragment() {
@@ -95,7 +99,7 @@ public class ForecastFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
-    public class FetchWeatherTask extends AsyncTask<String, Void, Void> {
+    public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
         private String FORECAST_BASE_URL;
@@ -105,7 +109,7 @@ public class ForecastFragment extends Fragment {
          * @return
          */
         @Override
-        protected Void doInBackground(String... args) {
+        protected String[] doInBackground(String... args) {
             if (args.length == 0) return null;
             String postalCode = args[0];
 
@@ -127,7 +131,7 @@ public class ForecastFragment extends Fragment {
                         .appendQueryParameter("q", postalCode)
                         .appendQueryParameter("mode", "json")
                         .appendQueryParameter("units", "metric")
-                        .appendQueryParameter("cnt", "7")
+                        .appendQueryParameter("cnt", Integer.toString(NUM_DAYS))
                         .appendQueryParameter("APPID", BuildConfig.OPEN_WEATHER_MAP_API_KEY);
 
                 URL url = new URL(uriBuilder.build().toString());
@@ -142,7 +146,7 @@ public class ForecastFragment extends Fragment {
                 StringBuilder buffer = new StringBuilder();
                 if (inputStream == null) {
                     // Nothing to do
-                    return null;
+                    return empty();
                 }
                 reader = new BufferedReader(new InputStreamReader(inputStream));
 
@@ -152,21 +156,26 @@ public class ForecastFragment extends Fragment {
                 }
 
                 if (buffer.length() == 0) {
-                    return null;
+                    return empty();
                 }
                 forecastJsonStr = buffer.toString();
 
                 Log.v(LOG_TAG, forecastJsonStr);
 
-            } catch (IOException e) {
+                return new WeatherDataParser().getWeatherDataFromJson(forecastJsonStr, NUM_DAYS);
+
+            } catch (IOException | JSONException e) {
                 Log.e(LOG_TAG, "Error ", e);
-                forecastJsonStr = null;
+                return empty();
             } finally {
                 if (urlConnection != null) urlConnection.disconnect();
                 Util.close(reader);
             }
+        }
 
-            return null;
+        @NonNull
+        private String[] empty() {
+            return new String[]{};
         }
     }
 }
