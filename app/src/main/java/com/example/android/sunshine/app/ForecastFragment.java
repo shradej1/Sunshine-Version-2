@@ -25,6 +25,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -33,7 +34,8 @@ import java.util.List;
 public class ForecastFragment extends Fragment {
 
     public static final int NUM_DAYS = 7;
-    ArrayAdapter<String> mForecastAdapter;
+    private ArrayAdapter<String> mForecastAdapter;
+    private WeatherDataParser weatherDataParser = new WeatherDataParser();
 
     public ForecastFragment() {
     }
@@ -58,14 +60,13 @@ public class ForecastFragment extends Fragment {
                 "Sat 6/28 - TRAPPED IN WEATHERSTATION - 23/18",
                 "Sun 6/29 - Sunny - 20/7"
         };
-        List<String> weekForecast = new ArrayList<String>(Arrays.asList(data));
-
+        List<String> weekForecast = new ArrayList<>(Arrays.asList(data));
 
         // Now that we have some dummy forecast data, create an ArrayAdapter.
         // The ArrayAdapter will take data from a source (like our dummy forecast) and
         // use it to populate the ListView it's attached to.
         mForecastAdapter =
-                new ArrayAdapter<String>(
+                new ArrayAdapter<>(
                         getActivity(), // The current context (this activity)
                         R.layout.list_item_forecast, // The name of the layout ID.
                         R.id.list_item_forecast_textview, // The ID of the textview to populate.
@@ -106,7 +107,6 @@ public class ForecastFragment extends Fragment {
 
         /**
          * @param args Arguments.  First argument (required) should be postal code.
-         * @return
          */
         @Override
         protected String[] doInBackground(String... args) {
@@ -119,7 +119,7 @@ public class ForecastFragment extends Fragment {
             BufferedReader reader = null;
 
             // Will contain the raw JSON response as a string.
-            String forecastJsonStr = null;
+            String forecastJsonStr;
 
             try {
                 // Construct the URL for the OpenWeatherMap query
@@ -162,7 +162,7 @@ public class ForecastFragment extends Fragment {
 
                 Log.v(LOG_TAG, forecastJsonStr);
 
-                return new WeatherDataParser().getWeatherDataFromJson(forecastJsonStr, NUM_DAYS);
+                return weatherDataParser.getWeatherDataFromJson(forecastJsonStr, NUM_DAYS);
 
             } catch (IOException | JSONException e) {
                 Log.e(LOG_TAG, "Error ", e);
@@ -170,6 +170,15 @@ public class ForecastFragment extends Fragment {
             } finally {
                 if (urlConnection != null) urlConnection.disconnect();
                 Util.close(reader);
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String[] strings) {
+            mForecastAdapter.clear();
+            for (String s : strings) {
+                // TODO: calls notifyDatasetChanged() on every add.  >= honeycomb use addAll();
+                mForecastAdapter.add(s);
             }
         }
 
