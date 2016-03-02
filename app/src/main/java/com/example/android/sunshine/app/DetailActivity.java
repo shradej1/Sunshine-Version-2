@@ -38,8 +38,13 @@ public class DetailActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        return id == R.id.action_settings || super.onOptionsItemSelected(item);
-
+        if(id == R.id.action_settings) {
+            Intent showSettingsIntent = new Intent(this, SettingsActivity.class);
+            startActivity(showSettingsIntent);
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     public static class PlaceholderFragment extends Fragment {
