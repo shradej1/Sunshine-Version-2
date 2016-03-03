@@ -29,23 +29,19 @@ public class WeatherDataParser {
     }
 
     /**
-     * Prepares the weather high/low for presentation.
-     *
-     * For presentation, assume the user doesn't care about tenths of a degree
-     */
-    private String formatHighLows(double high, double low) {
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
-
-        return roundedHigh + "/" + roundedLow;
-    }
-
-    /**
      * Take the String representing the complete forecase in JSON format and pull out the data we
      * need to construct the Strings needed for the wireframes.
+     * @param forecatJsonStr The JSON forecast string
+     * @param numDays The number of days in the JSON string
+     * @param convertToFarenheit The JSON string is assumed to contain metric temperatures.
+     *                           Should we convert them to farenheit?
+     * @param tempUnitsPostfixString The units String that will be pre-pended to the temperatures.
      *
      */
-    public String[] getWeatherDataFromJson(String forecatJsonStr, int numDays) throws JSONException {
+    public String[] getWeatherDataFromJson(String forecatJsonStr,
+                                           int numDays,
+                                           boolean convertToFarenheit,
+                                           String tempUnitsPostfixString) throws JSONException {
         final String OWM_LIST = "list";
         final String OWM_WEATHER = "weather";
         final String OWM_TEMPERATURE = "temp";
@@ -86,7 +82,8 @@ public class WeatherDataParser {
             double high = tempObject.getDouble(OWM_MAX);
             double low = tempObject.getDouble(OWM_MIN);
 
-            String highAndLow = formatHighLows(high, low);
+            // temps are in metric / celsius.
+            String highAndLow = formatHighLows(high, low, convertToFarenheit, tempUnitsPostfixString);
             resultStrs[i] = day + " - " + description + " - " + highAndLow;
         }
 
@@ -96,7 +93,34 @@ public class WeatherDataParser {
         return resultStrs;
     }
 
-    public static double getMaxTemperatureForDay(String weatherData, int dayIndex) throws JSONException {
+    /**
+     * Prepares the weather high/low for presentation.
+     *
+     * For presentation, assume the user doesn't care about tenths of a degree
+     */
+    private String formatHighLows(double high,
+                                  double low,
+                                  boolean convertToFarenheit,
+                                  String tempUnitsPostfixString) {
+        if(convertToFarenheit) {
+            high = toFarenheit(high);
+            low = toFarenheit(low);
+        }
+
+        long roundedHigh = Math.round(high);
+        long roundedLow = Math.round(low);
+
+
+
+        return roundedHigh + tempUnitsPostfixString + "/" + roundedLow + tempUnitsPostfixString;
+    }
+
+    private double toFarenheit(double celsius) {
+        return celsius * 9.0 / 5.0 + 32;
+    }
+
+    public static double getMaxTemperatureForDay(String weatherData,
+                                                 int dayIndex) throws JSONException {
         JSONObject array = new JSONObject(weatherData);
         return array.getJSONArray("list")
                 .getJSONObject(dayIndex)

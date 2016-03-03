@@ -115,7 +115,10 @@ public class ForecastFragment extends Fragment {
         String zip = PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .getString(getString(R.string.pref_location_key),
                         getString(R.string.pref_location_default));
-        new FetchWeatherTask().execute(zip);
+        String temp = PreferenceManager.getDefaultSharedPreferences(getActivity())
+                .getString(getString(R.string.pref_units_key),
+                        getString(R.string.pref_celsius));
+        new FetchWeatherTask().execute(zip, temp);
     }
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
@@ -124,12 +127,14 @@ public class ForecastFragment extends Fragment {
         private String FORECAST_BASE_URL;
 
         /**
-         * @param args Arguments.  First argument (required) should be postal code.
+         * @param args Arguments.  First argument (required) should be postal code.  The second
+         *             argument (required) should be the temperature units string.
          */
         @Override
         protected String[] doInBackground(String... args) {
-            if (args.length == 0) return null;
+            if (args.length < 2) return null;
             String postalCode = args[0];
+            String tempUnits = args[1];
 
             // These two need to be declared outside the try/catch so that they can be closed
             // in the finally block
@@ -181,7 +186,12 @@ public class ForecastFragment extends Fragment {
 
                 Log.v(LOG_TAG, forecastJsonStr);
 
-                return weatherDataParser.getWeatherDataFromJson(forecastJsonStr, NUM_DAYS);
+                boolean convertToFarenheit = tempUnits.equals(getString(R.string.pref_fahrenheit));
+                return weatherDataParser.getWeatherDataFromJson(
+                        forecastJsonStr,
+                        NUM_DAYS,
+                        convertToFarenheit,
+                        tempUnits);
 
             } catch (IOException | JSONException e) {
                 Log.e(LOG_TAG, "Error ", e);
